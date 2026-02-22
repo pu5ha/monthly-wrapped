@@ -7,7 +7,7 @@ import { useSession } from "@/lib/useSession";
 import Navbar from "@/components/Navbar";
 import LoadingAnimation from "@/components/LoadingAnimation";
 import WrapHistory from "@/components/WrapHistory";
-import type { Wrap, SpotifyTrack, SpotifyArtist } from "@/types";
+import type { Wrap } from "@/types";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -21,8 +21,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [topItems, setTopItems] = useState<{ topTracks: SpotifyTrack[]; topArtists: SpotifyArtist[] } | null>(null);
-  const [fetchingTop, setFetchingTop] = useState(false);
 
   const now = new Date();
   const isFirstWeek = now.getDate() <= 7 || process.env.NEXT_PUBLIC_TEST_MODE === "true";
@@ -75,24 +73,6 @@ export default function Dashboard() {
     } catch {
       setError("Failed to generate. Please try again.");
       setGenerating(false);
-    }
-  };
-
-  const handleFetchTopItems = async () => {
-    setFetchingTop(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/spotify/top-items");
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Failed to fetch top items");
-        return;
-      }
-      setTopItems(data);
-    } catch {
-      setError("Failed to fetch top items.");
-    } finally {
-      setFetchingTop(false);
     }
   };
 
@@ -184,67 +164,6 @@ export default function Dashboard() {
             {error && (
               <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                 {error}
-              </div>
-            )}
-          </div>
-        </motion.section>
-
-        {/* Test: Fetch Top Items */}
-        <motion.section
-          className="mb-16"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <div className="overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">Test: Fetch Top Items</h2>
-              <button
-                onClick={handleFetchTopItems}
-                disabled={fetchingTop}
-                className="rounded-full bg-purple-600 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-purple-500 disabled:opacity-50"
-              >
-                {fetchingTop ? "Fetching..." : "Fetch My Top 5"}
-              </button>
-            </div>
-
-            {topItems && (
-              <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
-                <div>
-                  <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-[#1DB954]">Top Songs</h3>
-                  <ol className="space-y-3">
-                    {topItems.topTracks.slice(0, 5).map((track, i) => (
-                      <li key={track.id} className="flex items-center gap-3">
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold">
-                          {i + 1}
-                        </span>
-                        {track.album.images[0] && (
-                          <img src={track.album.images[0].url} alt="" className="h-10 w-10 shrink-0 rounded object-cover" />
-                        )}
-                        <div className="min-w-0">
-                          <p className="truncate font-medium">{track.name}</p>
-                          <p className="truncate text-sm text-white/50">{track.artists.map(a => a.name).join(", ")}</p>
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-                <div>
-                  <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-[#1DB954]">Top Artists</h3>
-                  <ol className="space-y-3">
-                    {topItems.topArtists.slice(0, 5).map((artist, i) => (
-                      <li key={artist.id} className="flex items-center gap-3">
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold">
-                          {i + 1}
-                        </span>
-                        {artist.images[0] && (
-                          <img src={artist.images[0].url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
-                        )}
-                        <p className="truncate font-medium">{artist.name}</p>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
               </div>
             )}
           </div>

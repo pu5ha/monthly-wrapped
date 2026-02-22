@@ -109,6 +109,20 @@ export async function composeFinalImage(
   const titleText = `${escapeXml(data.month)} Wrapped`;
   const genreText = data.genre ? `Your Vibe: ${escapeXml(data.genre)}` : "";
 
+  // Large decorative year digits running vertically down the left side
+  const yearStr = String(data.year);
+  const yearDigitSize = 180;
+  const yearX = 50;
+  const yearStartY = 220;
+  const yearSpacing = 150;
+  const yearDigits = yearStr
+    .split("")
+    .map(
+      (digit, i) =>
+        `<text x="${yearX}" y="${yearStartY + i * yearSpacing}" font-family="Impact, Arial Black, sans-serif" font-size="${yearDigitSize}" fill="rgba(255,255,255,0.25)" font-weight="900" letter-spacing="-5">${digit}</text>`
+    )
+    .join("\n");
+
   const textSvg = Buffer.from(
     `<svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -116,6 +130,9 @@ export async function composeFinalImage(
           <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#000000" flood-opacity="0.7"/>
         </filter>
       </defs>
+
+      <!-- Large vertical year on left side -->
+      ${yearDigits}
 
       <!-- Title with drop shadow -->
       <text x="${WIDTH / 2}" y="${titleY}" font-family="Arial Black, Impact, sans-serif" font-size="62" fill="white" font-weight="900" text-anchor="middle" filter="url(#shadow)">
