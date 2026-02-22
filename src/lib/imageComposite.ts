@@ -1,4 +1,20 @@
 import sharp from "sharp";
+import path from "path";
+import fs from "fs";
+
+// Set up fontconfig to use bundled Inter font so text renders on Vercel's Linux
+const fontsDir = path.join(process.cwd(), "src/fonts");
+const fontsConf = path.join(fontsDir, "fonts.conf");
+if (fs.existsSync(fontsConf)) {
+  // Write a runtime copy with the actual font directory path
+  const runtimeConf = "/tmp/fontconfig-mw.conf";
+  if (!fs.existsSync(runtimeConf)) {
+    const conf = fs.readFileSync(fontsConf, "utf-8").replace("FONTDIR", fontsDir);
+    fs.mkdirSync("/tmp/fontconfig-cache", { recursive: true });
+    fs.writeFileSync(runtimeConf, conf);
+  }
+  process.env.FONTCONFIG_FILE = runtimeConf;
+}
 
 const WIDTH = 1080;
 const HEIGHT = 1350; // Instagram portrait ratio
@@ -12,8 +28,20 @@ interface ComposeFinalImageData {
   genre: string;
 }
 
-function escapeXml(str: string): string {
+function sanitizeForSvg(str: string): string {
   return str
+    // Remove XML-invalid control characters
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+    // Remove characters that are invalid in XML 1.0
+    .replace(/[\uFFFE\uFFFF]/g, "")
+    // Replace common Unicode dashes/quotes with ASCII equivalents
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-");
+}
+
+function escapeXml(str: string): string {
+  return sanitizeForSvg(str)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -94,7 +122,7 @@ export async function composeFinalImage(
     .slice(0, 5)
     .map(
       (a, i) =>
-        `<text x="${colLeftX}" y="${listStartY + i * lineHeight}" font-family="Impact, Arial Black, sans-serif" font-size="36" fill="white" font-weight="bold"><tspan fill="rgba(255,255,255,0.35)" font-family="Arial, sans-serif" font-size="28">${i + 1}.</tspan>  ${escapeXml(truncate(a.name, maxChars))}</text>`
+        `<text x="${colLeftX}" y="${listStartY + i * lineHeight}" font-family="Inter, sans-serif" font-size="36" fill="white" font-weight="bold"><tspan fill="rgba(255,255,255,0.35)" font-family="Inter, sans-serif" font-size="28">${i + 1}.</tspan>  ${escapeXml(truncate(a.name, maxChars))}</text>`
     )
     .join("\n");
 
@@ -102,7 +130,7 @@ export async function composeFinalImage(
     .slice(0, 5)
     .map(
       (t, i) =>
-        `<text x="${colRightX}" y="${listStartY + i * lineHeight}" font-family="Impact, Arial Black, sans-serif" font-size="36" fill="white" font-weight="bold"><tspan fill="rgba(255,255,255,0.35)" font-family="Arial, sans-serif" font-size="28">${i + 1}.</tspan>  ${escapeXml(truncate(cleanSongName(t.name), maxChars))}</text>`
+        `<text x="${colRightX}" y="${listStartY + i * lineHeight}" font-family="Inter, sans-serif" font-size="36" fill="white" font-weight="bold"><tspan fill="rgba(255,255,255,0.35)" font-family="Inter, sans-serif" font-size="28">${i + 1}.</tspan>  ${escapeXml(truncate(cleanSongName(t.name), maxChars))}</text>`
     )
     .join("\n");
 
@@ -119,7 +147,7 @@ export async function composeFinalImage(
     .split("")
     .map(
       (digit, i) =>
-        `<text x="${yearX}" y="${yearStartY + i * yearSpacing}" font-family="Impact, Arial Black, sans-serif" font-size="${yearDigitSize}" fill="rgba(255,255,255,0.25)" font-weight="900" letter-spacing="-5">${digit}</text>`
+        `<text x="${yearX}" y="${yearStartY + i * yearSpacing}" font-family="Inter, sans-serif" font-size="${yearDigitSize}" fill="rgba(255,255,255,0.25)" font-weight="900" letter-spacing="-5">${digit}</text>`
     )
     .join("\n");
 
@@ -135,15 +163,15 @@ export async function composeFinalImage(
       ${yearDigits}
 
       <!-- Title with drop shadow -->
-      <text x="${WIDTH / 2}" y="${titleY}" font-family="Arial Black, Impact, sans-serif" font-size="62" fill="white" font-weight="900" text-anchor="middle" filter="url(#shadow)">
+      <text x="${WIDTH / 2}" y="${titleY}" font-family="Inter, sans-serif" font-size="62" fill="white" font-weight="900" text-anchor="middle" filter="url(#shadow)">
         ${titleText}
       </text>
 
       <!-- Section headers -->
-      <text x="${colLeftX}" y="${listsTop}" font-family="Arial Black, Impact, sans-serif" font-size="24" fill="white" font-weight="900" letter-spacing="3">
+      <text x="${colLeftX}" y="${listsTop}" font-family="Inter, sans-serif" font-size="24" fill="white" font-weight="900" letter-spacing="3">
         TOP ARTISTS
       </text>
-      <text x="${colRightX}" y="${listsTop}" font-family="Arial Black, Impact, sans-serif" font-size="24" fill="white" font-weight="900" letter-spacing="3">
+      <text x="${colRightX}" y="${listsTop}" font-family="Inter, sans-serif" font-size="24" fill="white" font-weight="900" letter-spacing="3">
         TOP SONGS
       </text>
 
@@ -154,10 +182,10 @@ export async function composeFinalImage(
       <line x1="${WIDTH / 2}" y1="${listsTop - 15}" x2="${WIDTH / 2}" y2="${listStartY + 4 * lineHeight + 20}" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
 
       <!-- Genre line -->
-      ${genreText ? `<text x="${WIDTH / 2}" y="${genreY}" font-family="Arial Black, Impact, sans-serif" font-size="30" fill="white" text-anchor="middle" font-weight="900" letter-spacing="2" filter="url(#shadow)">${genreText}</text>` : ""}
+      ${genreText ? `<text x="${WIDTH / 2}" y="${genreY}" font-family="Inter, sans-serif" font-size="30" fill="white" text-anchor="middle" font-weight="900" letter-spacing="2" filter="url(#shadow)">${genreText}</text>` : ""}
 
       <!-- Footer -->
-      <text x="${WIDTH / 2}" y="${footerY}" font-family="Arial, Helvetica, sans-serif" font-size="20" fill="rgba(255,255,255,0.3)" text-anchor="middle" letter-spacing="1">
+      <text x="${WIDTH / 2}" y="${footerY}" font-family="Inter, sans-serif" font-size="20" fill="rgba(255,255,255,0.3)" text-anchor="middle" letter-spacing="1">
         monthwrapped.com
       </text>
     </svg>`
